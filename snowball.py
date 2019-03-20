@@ -42,7 +42,7 @@ def comment(sess, symbol):
     params['symbol'] = symbol
 
     items = []
-    for i in range(100):
+    for i in range(10):
         params['page'] = i+1
         results = sess.get(url, params=params, headers=headers3, timeout=200, verify=False)
         r = json.loads(results.text)
@@ -86,7 +86,7 @@ def article(sess, category):
     params['category'] = category
 
     #while True:
-    for i in range(2):
+    for i in range(5):
         try:
             results = sess.get(url, params=params, headers=headers2, timeout=200, verify=False)
         except:
@@ -177,6 +177,6 @@ if __name__ == '__main__':
 
     # run crawlers
     sess = get_session()
-    crawler(sess, symbols, comment, comment_path)
+    # crawler(sess, symbols, comment, comment_path)
     crawler(sess, categorys, article, article_path)
 

@@ -1,11 +1,11 @@
 import time
 import requests
 from worker import app
+from monitor import CeleryMonitor
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
-@app.task()
 def test():
 
     # stock symbol
@@ -24,6 +24,11 @@ def test():
         app.send_task('tasks.spider.comment', [cookies, symbol], queue='crawl_queue')
     for category in categorys:
         app.send_task('tasks.spider.article', [cookies, category], queue='crawl_queue')
+
+    # turn on the monitor
+    broker = 'amqp://user:password@127.0.0.1:5672//'
+    daemon = CeleryMonitor(broker=broker)
+    daemon.run_loop()
 
 if __name__ == "__main__":
     test()

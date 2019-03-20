@@ -75,7 +75,7 @@ def comment(cookies, symbol):
 
     # replace with backend storage and use send_task function get parser separated with workers
 
-    for i in range(100):
+    for i in range(10):
         params['page'] = i+1
         results = requests.get(url, params=params, headers=headers3, cookies=cookieJar, timeout=200, verify=False)
         set_cookies(results.headers)
@@ -119,8 +119,7 @@ def article(cookies, category):
 
     # replace with backend storage and use send_task function get parser separated with workers
 
-    # for i in range(2):
-    while True:
+    for i in range(2):
         try:
             results = requests.get(url, params=params, headers=headers2, cookies=cookieJar, timeout=200, verify=False)
             set_cookies(results.headers)
