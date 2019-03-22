@@ -203,7 +203,8 @@ class PrometheusMonitor(object):
             elif bool(re.search(r'password', key.lower())):
                 conf[key] = '********' if self.app.conf[key] is not None else None
             else:
-                conf[key] = self.app.conf[key]
+                conf[key] = str(self.app.conf[key]) if self.app.conf[key] is not None else 'unknown'
+
 
         self.conf_info.info(conf)
 
