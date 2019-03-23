@@ -7,7 +7,9 @@ import copy
 from worker import app
 from statsd import StatsClient
 from prometheus_client import start_http_server
-from prometheus_client import Counter, Gauge, Info, Enum
+from prometheus_client import Counter, Gauge, Summary, Info, Enum
+from prometheus_client import CollectorRegistry, push_to_gateway
+from prometheus_client.exposition import basic_auth_handler
 from celery.events import EventReceiver
 from kombu import Connection as BrokerConnection
 
@@ -141,28 +143,44 @@ class PrometheusMonitor(object):
         self.app = app
         self.state = app.events.State()
         self.broker_conn = BrokerConnection(broker)
+        self.gateway = 'localhost:9091'
         self.create_metric()
 
     def create_metric(self):
         # record app conf
         self.conf_info = Info('celery_conf_info','APP_CONF')
+        self.conf_info_c = CollectorRegistry()
 
         # monitor worker info
-        self.workers_info =  Info('celery_workers_info', 'WORKER_INFO')
+        self.workers_info = Info('celery_workers_info', 'WORKER_INFO')
+        self.workers_info_c = CollectorRegistry()
 
         # monitor worker info real-time
         self.workers_state = Enum('celery_workers_state', 'WORKER_STATE', ['worker'], states=['online','offline'])
+        self.workers_state_c = CollectorRegistry()
         self.workers_processed = Gauge('celery_processed_tasks_total', 'WORKER_TASKS_PROCESSED', ['worker'])
+        self.workers_processed_c = CollectorRegistry()
         self.workers_active = Gauge('celery_active_tasks_total', 'WORKER_TASKS_ACTIVE', ['worker'])
+        self.workers_active_c = CollectorRegistry()
 
         # monitor tasks info
         self.tasks_counter = Counter('celery_tasks_total', 'TASK_COUNT_INFO', ['worker','task','result'])
+        self.tasks_counter_c = CollectorRegistry()
+        self.tasks_runtime = Summary('celery_tasks_seconds', 'TASK_RUNTIME', ['worker', 'task'])
+        self.tasks_runtime_c = CollectorRegistry()
         self.tasks_info = Info('celery_tasks_info', 'TASK_INFO')
+        self.tasks_info_c = CollectorRegistry()
+
+    @staticmethod
+    def auth_handler(url, method, timeout, headers, data):
+        username = 'username'
+        password = 'password'
+        return basic_auth_handler(url, method, timeout, headers, data, username, password)
 
     # monitor the task and status of worker with functions
     def run_loop(self):
 
-        self.on_application_conf()
+        # self.on_application_conf()
 
         while True:
             try:
@@ -189,7 +207,7 @@ class PrometheusMonitor(object):
 
     # all about configuration
 
-    def on_application_conf(self):
+    def on_application_conf(self): # TODO
         conf = {}
 
         # get the password shielded
@@ -205,16 +223,15 @@ class PrometheusMonitor(object):
             else:
                 conf[key] = str(self.app.conf[key]) if self.app.conf[key] is not None else 'unknown'
 
-
         self.conf_info.info(conf)
 
     # all about the tasks
 
-    def on_task_sent(self, event):
+    def on_task_sent(self, event): # TODO
         self.state.event(event)
         task = self.state.tasks.get(event['uuid'])
 
-    def on_task_received(self, event):
+    def on_task_received(self, event): # TODO
         self.state.event(event)
         task = self.state.tasks.get(event['uuid'])
 
@@ -229,14 +246,18 @@ class PrometheusMonitor(object):
         logger.info('Task {}[{}] succeeded'.format(task.name, task.uuid))
 
         self.tasks_counter.labels(worker=task.hostname, task=task.name, result='succeeded').inc()
+        self.tasks_runtime.labels(worker=task.hostname, task=task.name).observe(task.runtime)
         self.tasks_info.info({'name':task.name,
                               'uuid':task.uuid,
                               'result':'succeeded',
-                              'runtime':task.runtime,
+                              'runtime':str(task.runtime),
                               'hostname':task.hostname,
-                              'timestamp':task.timestamp})
+                              'timestamp':str(task.timestamp)})
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_counter_c, handler=self.auth_handler)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_runtime_c, handler=self.auth_handler)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_info_c, handler=self.auth_handler)
 
-    def on_task_failed(self, event):
+    def on_task_failed(self, event): # TODO
         self.state.event(event)
         task = self.state.tasks.get(event['uuid'])
         logger.warning('Task {}[{}] failed'.format(task.name, task.uuid))
@@ -248,9 +269,11 @@ class PrometheusMonitor(object):
                               'exception':task.exception,
                               'traceback':task.traceback,
                               'hostname':task.hostname,
-                              'timestamp':task.timestamp})
+                              'timestamp':str(task.timestamp)})
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_counter_c, handler=self.auth_handler)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_info_c, handler=self.auth_handler)
 
-    def on_task_retried(self, event):
+    def on_task_retried(self, event): # TODO
         self.state.event(event)
         task = self.state.tasks.get(event['uuid'])
         logger.warning('Task {}[{}] retried'.format(task.name, task.uuid))
@@ -262,19 +285,21 @@ class PrometheusMonitor(object):
                               'exception':task.exception,
                               'traceback':task.traceback,
                               'hostname':task.hostname,
-                              'timestamp':task.timestamp})
+                              'timestamp':str(task.timestamp)})
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_counter_c, handler=self.auth_handler)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.tasks_info_c, handler=self.auth_handler)
 
-    def on_task_rejected(self, event):
+    def on_task_rejected(self, event): # TODO
         self.state.event(event)
         task = self.state.tasks.get(event['uuid'])
 
-    def on_task_revoked(self, event):
+    def on_task_revoked(self, event): # TODO
         self.state.event(event)
         task = self.state.tasks.get(event['uuid'])
 
     # all about the status of the workers
 
-    def on_worker_online(self, event):
+    def on_worker_online(self, event): # TODO
         self.state.event(event)
         worker = self.state.workers.get(event['hostname'])
 
@@ -283,6 +308,8 @@ class PrometheusMonitor(object):
                                 'sw_ident':worker.sw_ident,
                                 'sw_ver':worker.sw_ver,
                                 'sw_sys':worker.sw_sys})
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_state_c, handler=self.auth_handler)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_info_c, handler=self.auth_handler)
 
     def on_worker_heartbeat(self, event):
         self.state.event(event)
@@ -292,9 +319,12 @@ class PrometheusMonitor(object):
         if worker.active is None: worker.active = 0
         self.workers_processed.labels(worker=worker.hostname).set(worker.processed)
         self.workers_active.labels(worker=worker.hostname).set(worker.active)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_processed_c, handler=self.auth_handler)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_active_c, handler=self.auth_handler)
 
-    def on_worker_offline(self, event):
+    def on_worker_offline(self, event): # TODO
         self.state.event(event)
         worker = self.state.workers.get(event['hostname'])
 
         self.workers_state.labels(worker=task.hostname).state('offline')
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_state_c, handler=self.auth_handler)
