@@ -6,6 +6,7 @@
   - [x] 存储 MongoDB
   - [x] 任务队列 RabbitMQ
   - [ ] 去重 Redis
+  - [ ] 异常处理
   - [ ] 反爬
     - [x] 爬取频率控制
     - [x] ua 和 refered 字段变更
