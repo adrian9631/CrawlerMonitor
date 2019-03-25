@@ -156,7 +156,7 @@ class PrometheusMonitor(object):
         self.workers_info_c = CollectorRegistry()
 
         # monitor worker info real-time
-        self.workers_state = Enum('celery_workers_state', 'WORKER_STATE', ['worker'], states=['online','offline'])
+        self.workers_state = Gauge('celery_workers_state', 'WORKER_STATE', ['worker'])
         self.workers_state_c = CollectorRegistry()
         self.workers_processed = Gauge('celery_processed_tasks_total', 'WORKER_TASKS_PROCESSED', ['worker'])
         self.workers_processed_c = CollectorRegistry()
@@ -173,7 +173,7 @@ class PrometheusMonitor(object):
 
     @staticmethod
     def auth_handler(url, method, timeout, headers, data):
-        username = 'username'
+        username = 'user'
         password = 'password'
         return basic_auth_handler(url, method, timeout, headers, data, username, password)
 
@@ -303,7 +303,7 @@ class PrometheusMonitor(object):
         self.state.event(event)
         worker = self.state.workers.get(event['hostname'])
 
-        self.workers_state.labels(worker=task.hostname).state('online')
+        self.workers_state.labels(worker=worker.hostname).set(1)
         self.workers_info.info({'hostname':worker.hostname,
                                 'sw_ident':worker.sw_ident,
                                 'sw_ver':worker.sw_ver,
@@ -322,9 +322,12 @@ class PrometheusMonitor(object):
         push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_processed_c, handler=self.auth_handler)
         push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_active_c, handler=self.auth_handler)
 
+        self.workers_state.labels(worker=worker.hostname).set(1)
+        push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_state_c, handler=self.auth_handler)
+
     def on_worker_offline(self, event): # TODO
         self.state.event(event)
         worker = self.state.workers.get(event['hostname'])
 
-        self.workers_state.labels(worker=task.hostname).state('offline')
+        self.workers_state.labels(worker=worker.hostname).set(0)
         push_to_gateway(self.gateway, job='pushgateway', registry=self.workers_state_c, handler=self.auth_handler)

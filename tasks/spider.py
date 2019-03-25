@@ -22,11 +22,12 @@ def init_cookies(cookies):
         cookieJar.set(key, value)
     return cookieJar
 
-def set_cookies(headers):
+def set_cookies(headers, cookieJar):
     if 'Set-Cookies' in headers.keys():
         for cookie in headers['Set-Cookies'].split(';'):
             key, value = cookie.split('=')[0], cookie.split('=')[1]
             cookieJar.set(key, value)
+    return { key:value for key,value in cookieJar.items() }
 
 # request homepage and get cookies
 @app.task(ignore_result=False)
@@ -75,10 +76,10 @@ def comment(cookies, symbol):
 
     # replace with backend storage and use send_task function get parser separated with workers
 
-    for i in range(10):
+    for i in range(100):
         params['page'] = i+1
         results = requests.get(url, params=params, headers=headers3, cookies=cookieJar, timeout=200, verify=False)
-        set_cookies(results.headers)
+        set_cookies(results.headers, cookieJar)
 
         r = json.loads(results.text)
         comments_list = r['list']
@@ -102,6 +103,36 @@ def article(cookies, category):
         'X-Requested-With':'XMLHttpRequest',
     }
 
+    params = {'since_id':'-1','max_id':'-1','count':'10'}
+    params['category'] = category
+    url = 'https://xueqiu.com/v4/statuses/public_timeline_by_category.json'
+    cookieJar = init_cookies(cookies)
+
+    # replace with backend storage and use send_task function get parser separated with workers
+
+    for i in range(50):
+        try:
+            results = requests.get(url, params=params, headers=headers2, cookies=cookieJar, timeout=200, verify=False)
+            cookies = set_cookies(results.headers, cookieJar)
+        except:
+            break
+
+        r = json.loads(results.text)
+        article_list = r['list']
+
+        for article in article_list:
+            app.send_task('tasks.spider.run_article', [article, cookies], queue='crawl_queue')
+            time.sleep(2)
+
+        params['max_id'] = r['next_max_id']
+        params['count'] = 15
+
+        # time.sleep(2)
+
+# separate the crawling part
+@app.task()
+def run_article(article, cookies):
+
     headers1 = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -112,36 +143,12 @@ def article(cookies, category):
         'Upgrade-Insecure-Requests':'1',
     }
 
-    params = {'since_id':'-1','max_id':'-1','count':'10'}
-    params['category'] = category
-    url = 'https://xueqiu.com/v4/statuses/public_timeline_by_category.json'
     cookieJar = init_cookies(cookies)
-
-    # replace with backend storage and use send_task function get parser separated with workers
-
-    for i in range(2):
-        try:
-            results = requests.get(url, params=params, headers=headers2, cookies=cookieJar, timeout=200, verify=False)
-            set_cookies(results.headers)
-        except:
-            break
-
-        r = json.loads(results.text)
-        article_list = r['list']
-
-        for article in article_list:
-            article = json.loads(article['data'])
-            article_id = article['target']
-            article_url = 'https://xueqiu.com' + article_id
-            result = requests.get(article_url, headers=headers1, cookies=cookieJar, timeout=200, verify=False)
-            set_cookies(result.headers)
-            app.send_task('tasks.spider.parse_article', [article, result.text], queue='parse_queue')
-            time.sleep(2)
-
-        params['max_id'] = r['next_max_id']
-        params['count'] = 15
-
-        # time.sleep(2)
+    article = json.loads(article['data'])
+    article_id = article['target']
+    article_url = 'https://xueqiu.com' + article_id
+    result = requests.get(article_url, headers=headers1, cookies=cookieJar, timeout=200, verify=False)
+    app.send_task('tasks.spider.parse_article', [article, result.text], queue='parse_queue')
 
 # parse article response with regex
 @app.task()

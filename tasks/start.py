@@ -34,7 +34,6 @@ def tasks():
 
 def test():
 
-    # subprocess
     p = Process(target=monitor, args=())
     p.start()
 
