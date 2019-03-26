@@ -3,6 +3,11 @@
 ## Introduction
 &emsp;&emsp;本项目在celery分布式基础上构建监控方案demo，在编写Statsd+InfluxDB方案代码进行调研过程中，转向Prometheus的怀抱，使用Grafana对监控序列进行可视化，爬虫部分目前只完成对下载和解析进行简单解耦，反爬部分和代码结构优化等后续会陆续进行完善。  
 
+## FlowChart  
+&emsp;&emsp;简单画个流程图：  
+
+<img src="https://drive.google.com/uc?export=view&id=1GO8Pdn77eM73cuiODSVpwIZ5T0gC0wFr" width = "650" height = "400" alt="sentence_model" align=center /> 
+
 ## Metrics
 &emsp;&emsp;通过调研发现，在statsd 和 prometheus 的客户端均有对 metrics 的实现，后者在类型上支持较为丰富一点，这里使用 prometheus metrics 设计监控指标 metrics，其设计如下表，并采用 worker，task，results 三个主要标签维度进行合理划分，各个类型 metric 的定义和使用，详细可见 [Prometheus官网](https://prometheus.io/docs/concepts/metric_types/) 以及对应的 [Python 客户端](https://github.com/prometheus/client_python)。  
 
