@@ -1,24 +1,25 @@
 import time
 import requests
-from worker import app
+from tasks.worker import app
 from monitor import PrometheusMonitor
 from celery.utils.log import get_task_logger
 from multiprocessing import Process
+from utils import get_config_values
 
 logger = get_task_logger(__name__)
 
 def monitor():
     # turn on the monitor
-    broker = 'amqp://user:password@127.0.0.1:5672//'
+    broker = get_config_values('celery','broker')
     daemon = PrometheusMonitor(app=app, broker=broker)
     daemon.run_loop()
 
 def tasks():
 
     # stock symbol
-    symbols = ['TSLA']
+    symbols = get_config_values('spider','symbols')
     # article category
-    categorys = ['105','111','102','104','101','113','114','110']
+    categorys = get_config_values('spider','categorys')
 
     # get cookies
     result = app.send_task('tasks.spider.get_cookies', queue='crawl_queue')

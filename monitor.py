@@ -4,7 +4,8 @@ import threading
 import logging
 import re
 import copy
-from worker import app
+from tasks.worker import app
+from utils import get_config_values
 from statsd import StatsClient
 from prometheus_client import start_http_server
 from prometheus_client import Counter, Gauge, Summary, Info, Enum
@@ -173,8 +174,8 @@ class PrometheusMonitor(object):
 
     @staticmethod
     def auth_handler(url, method, timeout, headers, data):
-        username = 'user'
-        password = 'password'
+        username = get_config_values('pushgateway','username')
+        password = get_config_values('pushgateway','password')
         return basic_auth_handler(url, method, timeout, headers, data, username, password)
 
     # monitor the task and status of worker with functions

@@ -80,13 +80,14 @@ def comment(cookies, symbol):
         params['page'] = i+1
         results = requests.get(url, params=params, headers=headers3, cookies=cookieJar, timeout=200, verify=False)
         set_cookies(results.headers, cookieJar)
+        logger.info("Now its in the i th page".format(i+1))
 
         r = json.loads(results.text)
         comments_list = r['list']
         params['last_id'] = comments_list[-1]['id']
         for line in comments_list:
             app.send_task('tasks.spider.parse_comment', [line,], queue='parse_queue')
-        time.sleep(3)
+        time.sleep(2)
 
 # crawl article linked with category
 @app.task(ignore_result=True)
@@ -127,7 +128,7 @@ def article(cookies, category):
         params['max_id'] = r['next_max_id']
         params['count'] = 15
 
-        # time.sleep(2)
+        time.sleep(2)
 
 # separate the crawling part
 @app.task()
