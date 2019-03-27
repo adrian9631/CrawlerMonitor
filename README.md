@@ -1,7 +1,10 @@
 # CrawlerMonitor
 
 ## Introduction
-&emsp;&emsp;本项目在celery分布式基础上构建监控方案demo，在编写Statsd+InfluxDB方案代码进行调研过程中，转向Prometheus的怀抱，使用Grafana对监控序列进行可视化，爬虫部分目前只完成对下载和解析进行简单解耦，反爬部分和代码结构优化等后续会陆续进行完善。  
+&emsp;&emsp;本项目在celery分布式基础上构建监控方案demo，在编写Statsd+InfluxDB方案代码进行调研过程中，转向Prometheus的怀抱 ，使用Grafana对监控序列进行可视化，爬虫部分目前只完成对下载和解析进行简单解耦，反爬部分和代码结构优化等后续会陆续进行完善。
+
+## QuickStart
+&emsp;&emsp;本项目环境为 Ubuntu 16.04 LTS 以及使用 Python 3.6.5 (Anaconda), 安装执行流程默认适配上述环境，具体各部分安装配置请移步 [快速安装](https://github.com/adrianyoung/CrawlerMonitor/wiki/%E5%BF%AB%E9%80%9F%E5%AE%89%E8%A3%85)，其中包括 RabbitMQ、MongoDB、Python 相关库、 Celery (推荐使用 4.1.1 版本)、Prometheus、Grafana 等安装配置，操作启动控制请参考 [快速启动](https://github.com/adrianyoung/CrawlerMonitor/wiki/%E5%BF%AB%E9%80%9F%E5%90%AF%E5%8A%A8)，可分为手动启动和后台运行。后续会考虑 docker 容器化。启动三个实例 worker 跑了几分钟，从 MongoDB 导出的几千条 Json 数据 [此处](https://drive.google.com/file/d/1Vy71M9Jy7Mj4rFRCoj-PRvztsJbZOIJ8/view?usp=sharing) 。
 
 ## FlowChart  
 &emsp;&emsp;简单画个流程图：  
@@ -21,13 +24,15 @@
 |Summary|tasks_runtime|√|√||
 |Info|tasks_info|√|√|√|  
   
+&emsp;&emsp;这里只涉及任务和工作单元层面，爬虫异常层面仍需进一步设计指标
 
 ## ScreenShot
-Grafana 监控界面 Dashboard 模板  
+&emsp;&emsp;Grafana 监控界面 Dashboard 模板  
 
 <img src="https://drive.google.com/uc?export=view&id=18DeLCoc08Gws6hPjOfpCTTALIiS6QC2B" width = "500" height = "300" alt="sentence_model" align=center />  
 
-获取 Dashboard 模板: 直接在 Grafana 里 import 粘贴 https://grafana.com/dashboards/9970/ 即可。
+&emsp;&emsp;获取 Dashboard 模板: 直接在 Grafana 里 import 粘贴 https://grafana.com/dashboards/9970/ 即可。
+
 
 ## TODO-LIST
 - [ ] Spider
@@ -61,13 +66,14 @@ Grafana 监控界面 Dashboard 模板
   - [x] 利用 influxdb 存储监控时序信息
   - [x] 利用 grafana 对监控时序信息进行可视化 (Celery/RabbitMQ)
   - [x] 利用 grafana 制定 dashboard 模板并导出
+  - [x] 利用 grafana 设置阈值规则报警(邮件)  
   - [ ] 利用 prometheus 设置阈值规则报警（邮件/微信）
-  - [ ] 利用 grafana 设置阈值规则邮件报警
+
   
  - [ ] Common
+   - [x] 配置集中
    - [ ] 高可用方案
    - [ ] 容器化
    - [ ] 单元测试
-   - [ ] 配置集中化
    - [ ] 代码优化 
    
