@@ -1,8 +1,5 @@
 # CrawlerMonitor
 
-### UPDATE: 2020.4.14
-爬虫项目需求可私信邮箱 yd0301@outlook.com
-
 ## Introduction
 &emsp;&emsp;本项目在 Celery 分布式爬虫的基础上构建监控方案 Demo，在编写 Statsd + InfluxDB 方案代码进行调研过程中，转向了 Prometheus 的怀抱 ，使用 Grafana 对监控序列进行可视化，爬虫部分目前只完成对下载和解析进行简单解耦，反爬部分和代码结构优化等后续会陆续进行完善。
 
@@ -34,7 +31,7 @@
 
 <img src="https://drive.google.com/uc?export=view&id=18DeLCoc08Gws6hPjOfpCTTALIiS6QC2B" width = "500" height = "300" alt="sentence_model" align=center />  
 
-&emsp;&emsp;获取 Dashboard 模板: 直接在 Grafana 里 import 粘贴 https://grafana.com/dashboards/9970/ 即可。
+&emsp;&emsp;获取 Dashboard 模板: 直接在 Grafana 里 import 粘贴 https://grafana.com/grafana/dashboards/9970-celery-metrics/ 即可。
 
 
 ## TODO-LIST
